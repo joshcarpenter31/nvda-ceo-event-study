@@ -1,0 +1,4 @@
+event_id,label,date,timing,source_primary,source_secondary
+E1,Investigation disclosed,2026-11-09,"Board statement issued Sunday Nov 8; first trading day Nov 9",https://nvidianews.nvidia.com/news/statement-from-nvidia-board-of-directors,https://www.cnbc.com/2026/11/09/nvidia-jensen-huang-chinese-spy-investigation.html
+E2,Huang resigns,2026-11-12,"8-K; announced ~9:00 a.m. ET per CNBC live blog (filing gives no time)",https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm,https://www.cnbc.com/2026/11/12/nvidia-jensen-huang-ceo-live-updates.html
+E3,Huang reinstated,2026-11-23,"8-K; CNBC story posted 8:59 a.m. ET (filing gives no time)",https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000090/nov23pressrelease.htm,https://www.cnbc.com/2026/11/23/nvidia-jensen-huang-ceo.html

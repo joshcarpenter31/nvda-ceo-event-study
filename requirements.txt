@@ -1,0 +1,8 @@
+# Python 3.12; exact versions used to produce the published results
+pandas==3.1.1
+numpy==2.5.5
+scipy==1.18.1
+statsmodels==0.15.0
+matplotlib==3.11.2
+yfinance==1.8.0
+arch==9.0.0

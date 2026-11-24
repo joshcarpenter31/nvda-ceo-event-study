@@ -1,0 +1,6 @@
+{
+  "nvda_shares_outstanding": 24147000000,
+  "shares_source": "yfinance Ticker('NVDA').fast_info['shares']",
+  "fetched_at_utc": "2026-11-24",
+  "last_trading_day": "2026-11-23"
+}
