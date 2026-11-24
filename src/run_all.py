@@ -10,7 +10,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-steps = ["event_study", "robustness", "synthetic_control", "charts"]
+steps = ["event_study", "robustness", "synthetic_control", "charts", "hero_chart"]
 if "--fetch" in sys.argv:
     steps.insert(0, "fetch_data")
 

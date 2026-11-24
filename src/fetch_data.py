@@ -31,6 +31,9 @@ def main():
 
     close.to_csv(DATA / "close.csv")
     volume.to_csv(DATA / "volume.csv")
+    # Intraday range for the target (used by the hero chart)
+    ohlc = pd.DataFrame({f: raw[f][TARGET] for f in ["Open", "High", "Low", "Close"]})
+    ohlc.to_csv(DATA / "nvda_ohlc.csv")
     shares = yf.Ticker(TARGET).fast_info.get("shares")
     meta = {
         "nvda_shares_outstanding": int(shares),
