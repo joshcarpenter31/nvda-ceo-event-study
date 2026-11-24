@@ -1,7 +1,7 @@
 """LinkedIn hero image (4:5 portrait, dark): output/hero_linkedin.png
 
 Top: Nvidia's market value each day with the intraday range, annotated with the
-events. Bottom: implied share of Huang's exit already priced in.
+events. Bottom: each day's abnormal return against a normal-day noise band.
 Run after event_study.py (run_all.py does this)."""
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,6 @@ SHARES = load_shares()
 events = load_events()
 ohlc = pd.read_csv(DATA / "nvda_ohlc.csv", index_col=0, parse_dates=True)
 cars = pd.read_csv(OUT / "event_cars.csv")
-odds = pd.read_csv(OUT / "implied_exit_odds.csv", index_col=0, parse_dates=True)
 
 end = events.date.max()
 w = ohlc.loc[BASE:end] * SHARES / 1e12            # market value, $ trillions
@@ -83,32 +82,47 @@ note(il, w.Close.min(), f"${w.Close.min():.1f}T\n−${drop_usd:.1f}T since Nov {
 note(len(x) - 1, w.High.iloc[-1], f"Reinstated\n+${round(jump_usd, -1):,.0f}B in one day", (-6, 26),
      ha="right", color=AQUA, size=14.5, weight="bold")
 
-# --- Bottom panel: implied exit odds ---------------------------------------------
+# --- Bottom panel: daily move beyond the market vs. normal noise ---------------
+daily = pd.read_csv(OUT / "daily_abnormal_returns.csv", index_col=0, parse_dates=True)
+vol = pd.read_csv(OUT / "robust_volatility.csv")
+reb = pd.read_csv(OUT / "rebound_check.csv")
+noise = 2 * vol.sd_const.iloc[0]                       # +/- 2 SD of a normal day, %
+ar_pct = daily.loc[days, f"{PREFERRED}_simple"] * 100
 bx = fig.add_axes([0.11, 0.135, 0.83, 0.185], sharex=ax)
-bx.text(-0.6, 121, "How sure the market was that he was gone", fontsize=12.5, fontweight="bold", va="bottom")
-bx.text(-0.6, 108, "Share of his exit already priced into the stock", fontsize=10, color=INK2, va="bottom")
-for d, r in odds.iterrows():
+bx.text(-0.6, 41, "The resignation barely beat the noise. The comeback blew past it.", fontsize=12,
+        fontweight="bold", va="bottom")
+bx.text(-0.6, 34, "Each day's move beyond what the market explains", fontsize=10, color=INK2, va="bottom")
+bx.axhspan(-noise, noise, color=GRID, alpha=0.9, lw=0, zorder=0)
+bx.text(0.15, noise + 0.6, f"normal day: \u00b1{noise:.0f}%", fontsize=8.5, color=INK2, va="bottom")
+ev_days = set(events.date)
+for d, v in ar_pct.items():
     i = pos[d]
-    if r.implied_exit_odds_pct > 100:
-        bx.bar(i, 100, width=0.62, color=GRID, zorder=2)
-        bx.text(i, 50, "other\nnews", ha="center", va="center", fontsize=8, color=INK2, rotation=90, linespacing=1.0)
+    if d == days[-1]:
+        c = AQUA
+    elif d in ev_days:
+        c = RED
     else:
-        bx.bar(i, r.implied_exit_odds_pct, width=0.62, color=BLUE, zorder=2)
-for d in ["2026-11-09", "2026-11-12", "2026-11-18"]:
-    v = odds.loc[d, "implied_exit_odds_pct"]
-    bx.text(pos[pd.Timestamp(d)], v + 4, f"{v:.0f}%", ha="center", va="bottom", fontsize=11.5, fontweight="bold")
-bx.text(len(x) - 1, 6, "He's\nback", ha="center", va="bottom", fontsize=10, color=AQUA, fontweight="bold", linespacing=1.1)
-bx.set_ylim(0, 100)
-bx.set_yticks([0, 50, 100], ["0%", "50%", "100%"])
+        c = MUTED
+    bx.bar(i, v, width=0.62, color=c, zorder=2)
+for d in events.date:
+    v = ar_pct.loc[d]
+    bx.text(pos[d], v + (1 if v > 0 else -1), f"{v:+.1f}%".replace("-", "\u2212"), ha="center",
+            va="bottom" if v > 0 else "top", fontsize=11, fontweight="bold",
+            color=AQUA if d == days[-1] else INK)
+bx.axhline(0, color=INK2, lw=0.8, zorder=1)
+bx.set_ylim(-14, 32)
+bx.set_yticks([-10, 0, 10, 20, 30], ["\u221210%", "0%", "+10%", "+20%", "+30%"])
 bx.tick_params(axis="y", labelsize=9.5, length=0)
 bx.set_xticks(x, [f"{d:%b}\n{d.day}" if i in (0, len(x) - 1) else f"{d.day}" for i, d in enumerate(days)],
               fontsize=9.5)
 bx.tick_params(axis="x", length=0, colors=INK2)
-bx.spines["bottom"].set_color(GRID)
+bx.spines["bottom"].set_visible(False)
 
-fig.text(0.06, 0.055, "Market value = closing price × shares outstanding; gray bars show each day's trading range. "
-         "Exit odds: cumulative\nmove beyond the S&P 500 ex-Nvidia, as a share of the comeback-day jump "
-         "(a rough guide; Nov 20 had other news).", fontsize=8, color=MUTED, va="bottom", linespacing=1.4)
+lo_usd, hi_usd = reb.comeback_net_of_rebound_usd_bn.min(), reb.comeback_net_of_rebound_usd_bn.max()
+fig.text(0.06, 0.055, f"Market value = closing price \u00d7 shares outstanding; gray lines show each day's trading range. "
+         f"Moves are relative to the\nS&P 500 ex-Nvidia. Allowing for a typical rebound after Nov 20, the comeback is "
+         f"still ${round(lo_usd, -1):,.0f}B to ${round(hi_usd, -1):,.0f}B. Built with AI assistance.",
+         fontsize=8, color=MUTED, va="bottom", linespacing=1.4)
 fig.text(0.06, 0.025, "Full analysis: github.com/joshcarpenter31/nvda-ceo-event-study", fontsize=9.5,
          color=INK2, va="bottom")
 fig.savefig(OUT / "hero_linkedin.png", dpi=150)

@@ -140,39 +140,81 @@ spill.to_csv(OUT / "peer_spillovers.csv", index=False)
 print("\nPeer abnormal returns on event days (market model vs S&P 500 ex-NVDA):\n",
       spill.pivot(index="ticker", columns="event", values=["AR_pct", "t_stat", "p_bh"]).round(2).to_string())
 
-# --- Interpretation 1: the "Huang trade" (suppliers minus rivals) -------------
-# Nvidia's manufacturing/memory partners vs. its AI-chip competitors. If the
-# market read Huang's status as news about Nvidia's competitive position, the
-# spread should move against rivals when he returns and toward them when he goes.
-SUPPLIERS, RIVALS = ["TSM", "MU", "INTC"], ["AMD", "AVGO"]
-spread = ret[SUPPLIERS].mean(axis=1) - ret[RIVALS].mean(axis=1)
-m_sp = sm.OLS(spread.loc[est.index], sm.add_constant(est["SPYX"])).fit()
-sd_sp = np.sqrt(m_sp.mse_resid)
-sp_pred = predict(m_sp, ["SPYX"], post)
+# --- Interpretation 1: the "Huang trade" (suppliers minus competitors) ---------
+# Primary grouping is fixed by a rule, not by looking at the results:
+#   suppliers   = sell components into Nvidia's products (TSMC foundry, Micron HBM)
+#   competitors = sell AI accelerators that compete with Nvidia GPUs
+#                 (AMD Instinct, Broadcom custom ASICs, Intel Gaudi)
+# An earlier draft grouped Intel as a "partner" after seeing the event-day moves;
+# that grouping and one that drops Intel are kept as sensitivity checks.
+GROUPINGS = {
+    "rule_based": (["TSM", "MU"], ["AMD", "AVGO", "INTC"]),
+    "intel_excluded": (["TSM", "MU"], ["AMD", "AVGO"]),
+    "post_hoc_intel_as_partner": (["TSM", "MU", "INTC"], ["AMD", "AVGO"]),
+}
 sp_rows = []
-for _, e in events.iterrows():
-    a_ = spread.loc[e.date] - sp_pred.loc[e.date]
-    k = (m_sp.resid.abs() >= abs(a_)).sum()
-    sp_rows.append(dict(event=e.event_id, label=e.label, spread_AR_pct=a_ * 100, t_stat=a_ / sd_sp,
-                        p_empirical=(k + 1) / (len(m_sp.resid) + 1),
-                        suppliers_raw_pct=np.expm1(ret.loc[e.date, SUPPLIERS]).mean() * 100,
-                        rivals_raw_pct=np.expm1(ret.loc[e.date, RIVALS]).mean() * 100))
+for gname, (sup, riv) in GROUPINGS.items():
+    spread = ret[sup].mean(axis=1) - ret[riv].mean(axis=1)
+    m_sp = sm.OLS(spread.loc[est.index], sm.add_constant(est["SPYX"])).fit()
+    sd_sp = np.sqrt(m_sp.mse_resid)
+    sp_pred = predict(m_sp, ["SPYX"], post)
+    for _, e in events.iterrows():
+        a_ = spread.loc[e.date] - sp_pred.loc[e.date]
+        k = (m_sp.resid.abs() >= abs(a_)).sum()
+        sp_rows.append(dict(grouping=gname, suppliers="+".join(sup), competitors="+".join(riv),
+                            event=e.event_id, label=e.label, spread_AR_pct=a_ * 100, t_stat=a_ / sd_sp,
+                            p_empirical=(k + 1) / (len(m_sp.resid) + 1),
+                            suppliers_raw_pct=np.expm1(ret.loc[e.date, sup]).mean() * 100,
+                            competitors_raw_pct=np.expm1(ret.loc[e.date, riv]).mean() * 100))
 sp_tbl = pd.DataFrame(sp_rows)
 sp_tbl.to_csv(OUT / "supplier_rival_spread.csv", index=False)
-print("\nSupplier-minus-rival abnormal spread on event days:\n", sp_tbl.round(3).to_string(index=False))
+print("\nSupplier-minus-competitor abnormal spread on event days:\n",
+      sp_tbl.pivot(index="grouping", columns="event", values=["spread_AR_pct", "t_stat"]).round(2).to_string())
+
+# --- Rebound check: how much of the comeback day is a bounce from Nov 20? -------
+# Nov 20 was a large negative abnormal day attributed to other news. Some of the
+# next day's jump could be that overshoot reversing. Measure NVDA's typical
+# next-day abnormal return after big down days over all pre-event history.
+pre_all = ret.loc[:EST_END]
+m_all = fit("NVDA", MODELS[PREFERRED], pre_all)
+res_all = pre_all["NVDA"] - predict(m_all, MODELS[PREFERRED], pre_all)
+nxt = pd.DataFrame({"ar": res_all, "next": res_all.shift(-1)}).dropna()
+ar1 = sm.OLS(nxt["next"], sm.add_constant(nxt["ar"])).fit(cov_type="HC1")
+prev_day = dates[dates.get_loc(events.date.iloc[-1]) - 1]
+prev_ar = daily.loc[prev_day, PREFERRED]
+reb = [dict(method="AR(1) on abnormal returns", n=len(nxt),
+            expected_rebound_pct=(ar1.params["const"] + ar1.params["ar"] * prev_ar) * 100,
+            detail=f"rho={ar1.params['ar']:.3f} (t={ar1.tvalues['ar']:.2f})")]
+for thr in [-0.04, -0.05, -0.06]:
+    big = nxt[nxt["ar"] <= thr]
+    reb.append(dict(method=f"Mean next-day AR after AR <= {thr:.0%}", n=len(big),
+                    expected_rebound_pct=big["next"].mean() * 100,
+                    detail=f"max next-day AR {big['next'].max() * 100:+.1f}%"))
+reb = pd.DataFrame(reb)
+e3_ar = tbl[(tbl.event == events.event_id.iloc[-1]) &
+                    (tbl.window == "[0,0]") & (tbl.model == PREFERRED)]
+e3_pct, e3_usd = float(e3_ar.CAR_pct.iloc[0]), float(e3_ar.CAR_usd_bn.iloc[0])
+reb["comeback_net_of_rebound_pct"] = e3_pct - reb["expected_rebound_pct"]
+reb["comeback_net_of_rebound_usd_bn"] = reb["comeback_net_of_rebound_pct"] / e3_pct * e3_usd
+reb.to_csv(OUT / "rebound_check.csv", index=False)
+print(f"\nRebound check (prior day {prev_day.date()} abnormal {daily.loc[prev_day, PREFERRED + '_simple']:+.1%}; "
+      f"largest pre-event abnormal day {res_all.max():+.1%}):\n", reb.round(2).to_string(index=False))
 
 # --- Interpretation 2: implied odds of Huang's exit ----------------------------
 # Back-of-envelope: treat the reinstatement-day abnormal return as the full value
 # of having Huang vs. not. Losing him entirely is then a drop of
 # 1 - 1/(1 + AR_reinstatement). The cumulative abnormal return since disclosure,
 # divided by that, is the share of his exit the market had priced in.
-# Assumes every abnormal move in the window is about Huang, so days with other
-# news (Nov 18-20) are flagged rather than interpreted.
+# The 95% band reflects only day-to-day noise in the cumulative abnormal return
+# (residual sd x sqrt(days)); it ignores error in the denominator, so it is a
+# lower bound on the true uncertainty. Days with other news are flagged.
 ar_e3 = daily.loc[events.date.iloc[-1], f"{PREFERRED}_simple"]
 full_loss = 1 - 1 / (1 + ar_e3)
 cum_ar = (1 + daily.loc[episode, f"{PREFERRED}_simple"]).cumprod() - 1
 odds = pd.DataFrame({"cum_AR_pct": cum_ar * 100, "implied_exit_odds_pct": -cum_ar / full_loss * 100})
 odds = odds.loc[odds.index < events.date.iloc[-1]]
+n_days = np.arange(1, len(odds) + 1)
+odds["band_95_pts"] = 1.96 * sigma[PREFERRED] * np.sqrt(n_days) / full_loss * 100
 odds["other_news"] = odds.index.isin(confounders.date)
 odds.to_csv(OUT / "implied_exit_odds.csv")
 print(f"\nImplied full value of Huang: +{ar_e3:.1%} with vs. without (= {full_loss:.1%} of with-Huang value)")

@@ -1,0 +1,5 @@
+method,n,expected_rebound_pct,detail,comeback_net_of_rebound_pct,comeback_net_of_rebound_usd_bn
+AR(1) on abnormal returns,599,1.1155802093468066,rho=-0.108 (t=-1.89),25.386265332543754,769.5015901378513
+Mean next-day AR after AR <= -4%,22,1.1131668657642415,max next-day AR +10.4%,25.388678676126318,769.5747427540398
+Mean next-day AR after AR <= -5%,14,2.072120937540647,max next-day AR +10.4%,24.429724604349914,740.5071869936759
+Mean next-day AR after AR <= -6%,8,3.4702526924172896,max next-day AR +10.4%,23.03159284947327,698.1273964058652
