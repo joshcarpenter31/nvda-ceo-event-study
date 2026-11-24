@@ -87,7 +87,7 @@ for _, e in events.iterrows():
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
 ax.set_ylabel(f"Index ({pd.Timestamp(BASE):%b} {pd.Timestamp(BASE).day} close = 100)")
 ax.legend(loc="upper right", bbox_to_anchor=(1.0, 0.93), frameon=False, fontsize=9.5)
-title(fig, f"Nvidia fell {100 - trough:.0f}%, then recovered most of it",
+title(fig, f"Nvidia lost {100 - trough:.0f}% in two weeks, then got most of it back in one day",
       f"Price indexed to the last close before the investigation was disclosed ({pd.Timestamp(BASE):%b} "
       f"{pd.Timestamp(BASE).day}, 2026). Shaded days carried other news.")
 footer(fig, "Chip peers = equal-weight AMD, AVGO, TSM, MU, INTC. Shaded: Nov 5 sector rout; Nov 18-20 earnings, "
@@ -121,7 +121,7 @@ for _, e in events.iterrows():
 ax.set_xticks(range(len(a_pct)), [f"{d:%b} {d.day}" for d in a_pct.index], fontsize=8.5)
 ax.set_xlim(-0.7, len(a_pct) - 0.3)
 ax.set_ylabel("Abnormal return, % (beyond what the market predicts)")
-title(fig, "The reinstatement was the largest abnormal move by far",
+title(fig, "Nothing else came close to the day Huang came back",
       "Nvidia's daily abnormal return vs. a market model using the S&P 500 excluding Nvidia")
 footer(fig, f"{MODEL_LABELS[PREFERRED]}, estimated Oct 2025 - Oct 2026. Typical daily abnormal move: "
             f"+/-{sd_pct:.1f}%. Shaded days carried other news.")
@@ -149,7 +149,7 @@ ax.tick_params(axis="x", length=0)
 ax.set_ylim(min(lo_all) - 260, max(hi_all) + 230)
 ax.set_ylabel("Abnormal change in market value, $ billions")
 e3 = ev_ids[-1]
-title(fig, f"Reinstatement day: {car(e3):+.1f}% abnormal return (about +${round(car(e3, col='CAR_usd_bn'), -1):,.0f}B)",
+title(fig, f"The comeback added about ${round(car(e3, col='CAR_usd_bn'), -1):,.0f}B beyond the market's move",
       f"Event-day abnormal change in Nvidia's market value. Bars: preferred model; whiskers: range across "
       f"{len(grid)} specifications.")
 footer(fig, f"Abnormal simple return x prior-day market cap ({SHARES / 1e9:.2f}B shares). The reinstatement also "
@@ -179,7 +179,7 @@ n_sig = int(s3.significant_bh.sum())
 sig_names = ", ".join(s3.index[s3.significant_bh])
 ax.legend(handles=[Patch(color=BLUE, label="Significant after multiple-testing correction"),
                    Patch(color=LIGHTBLUE, label="Not significant")], frameon=False, fontsize=9.5, loc="lower right")
-title(fig, f"After adjusting for market beta, only {sig_names} clearly outperformed" if n_sig
+title(fig, f"Chip stocks soared too, but only {sig_names} beat what the market predicts" if n_sig
       else "After adjusting for market beta, no peer clearly outperformed",
       "Peers' abnormal returns on reinstatement day. Chip stocks rose a lot, but mostly in line with their high "
       "market betas.")
@@ -223,7 +223,7 @@ for a_ in (ax1, ax2):
     a_.tick_params(axis="x", labelsize=9)
 mix = ", ".join(f"{k.replace('SPYX', 'S&P ex-NVDA')} {v:.0%}" for k, v in wts.items() if v >= 0.05)
 final_sd = sc.gap_pct.iloc[-1] / sc.band_1sd_pct.iloc[-1]
-title(fig, "Nvidia fell far below a synthetic peer benchmark, then closed most of the gap",
+title(fig, f"The real Nvidia fell {abs(pl['NVDA'].min()):.0f}% behind a stand-in built from its peers",
       f"NVDA's gap was the most extreme of 11 stocks on {n_first} of {len(summ)} days. The final "
       f"{sc.gap_pct.iloc[-1]:.0f}% gap is {abs(final_sd):.1f} SD of normal drift.")
 footer(fig, f"Synthetic NVDA = fixed mix fit on Apr-Oct 2026 daily returns: {mix}. Placebos re-run the "
@@ -249,12 +249,76 @@ handles += [Line2D([], [], marker="o", ls="", color=INK2, markersize=8, label="M
             Line2D([], [], marker="D", ls="", color=INK2, markersize=8, label="+ chip-peer factor")]
 ax.legend(handles=handles, frameon=False, fontsize=9.5, loc="lower right", ncol=3, title="Benchmark",
           title_fontsize=9.5)
-title(fig, f"All {len(g3)} specifications find a {g3[f'{e3}_AR'].min():.0f}%-{g3[f'{e3}_AR'].max():.0f}% "
-           "reinstatement-day jump",
+title(fig, f"{len(g3)} ways to measure the comeback. None comes in below {np.floor(g3[f'{e3}_AR'].min()):.0f}%.",
       f"Each is significant at |t| > {np.floor(g3[f'{e3}_t'].min()):.0f}. The preferred specification "
       f"(S&P 500 ex-NVDA, 250 days) gives {car(e3):.1f}%.")
 footer(fig, "SPY and QQQ include NVDA itself, so on a +31% NVDA day they mechanically rise with it. "
             "Differences also reflect each benchmark's fit and beta.")
 save(fig, "06_spec_curve.png")
+
+
+# --- 7. The "Huang trade": suppliers minus rivals -------------------------------
+st = pd.read_csv(OUT / "supplier_rival_spread.csv")
+fig, ax = plt.subplots(figsize=(11, 6.2))
+fig.subplots_adjust(left=0.08, right=0.97, top=0.80, bottom=0.19)
+for i, r in st.iterrows():
+    v = r.spread_AR_pct
+    ax.bar(i, v, width=0.5, color=BLUE if v >= 0 else RED, zorder=3)
+    ax.text(i, v + (0.5 if v > 0 else -0.5), f"{v:+.1f} pts\n(t = {r.t_stat:.1f})", ha="center",
+            va="bottom" if v > 0 else "top", fontsize=11.5, fontweight="bold")
+ax.axhline(0, color=INK2, lw=0.8)
+ax.set_xticks(range(len(st)), [f"{EV_SHORT[e]}\n{events.set_index('event_id').loc[e, 'date']:%b} "
+                               f"{events.set_index('event_id').loc[e, 'date'].day}" for e in st.event],
+              fontsize=11, color=INK)
+ax.tick_params(axis="x", length=0)
+lim = st.spread_AR_pct.abs().max() + 4
+ax.set_ylim(-lim, lim)
+ax.set_ylabel("Suppliers minus rivals, abnormal return (pts)")
+title(fig, "Wall Street traded Huang's fate as suppliers vs. rivals",
+      "Nvidia's partners (TSMC, Micron, Intel) minus its AI-chip rivals (AMD, Broadcom), beyond the market's move")
+footer(fig, "Spread of equal-weight baskets, market model vs S&P 500 ex-NVDA, estimated Oct 2025 - Oct 2026. "
+            "\nThe resignation and comeback spreads beat every day of the prior year; Nov 9's is matched by one. "
+            "AMD also had an analyst upgrade on Nov 9.")
+save(fig, "07_huang_trade.png")
+
+# --- 8. Implied odds of a permanent exit --------------------------------------
+od = pd.read_csv(OUT / "implied_exit_odds.csv", index_col=0, parse_dates=True)
+clean = od[od.implied_exit_odds_pct <= 100]
+over = od[od.implied_exit_odds_pct > 100]
+fig, ax = plt.subplots(figsize=(11, 6.2))
+fig.subplots_adjust(left=0.08, right=0.95, top=0.80, bottom=0.17)
+ax.axhline(100, color=INK2, lw=0.8, ls=(0, (3, 3)))
+ax.text(od.index[0], 101.5, "Fully priced: Huang gone for good", fontsize=9, color=INK2, va="bottom")
+for d in od.index[od.other_news]:
+    ax.axvspan(d - pd.Timedelta(hours=14), d + pd.Timedelta(hours=14), ymax=0.87, color=SHADE, zorder=0, lw=0)
+ax.plot(clean.index, clean.implied_exit_odds_pct, color=BLUE, lw=2.4, marker="o", markersize=7,
+        markeredgecolor=SURFACE, markeredgewidth=2, zorder=3)
+ax.set_ylim(0, 125)
+labels = [("2026-11-09", "Probe\ndisclosed", (-14, 0), "right", "center"),
+          ("2026-11-12", "Huang\nresigns", (0, 14), "center", "bottom"),
+          ("2026-11-18", "Chair: he's\nnot coming back", (0, -40), "center", "top")]
+for d, lab, off, ha, va in labels:
+    d = pd.Timestamp(d)
+    v = od.loc[d, "implied_exit_odds_pct"]
+    ax.annotate(f"{v:.0f}%", (d, v), xytext=(0, -14), textcoords="offset points", ha="center",
+                va="top", fontsize=11, fontweight="bold", color=INK)
+    ax.annotate(lab, (d, v), xytext=off, textcoords="offset points", ha=ha, va=va, fontsize=9, color=INK2)
+if len(over):
+    d = over.index[0]
+    ax.annotate(f"Nov {d.day}: {over.iloc[0].implied_exit_odds_pct:.0f}%, more than\nlosing Huang could explain",
+                xy=(d, 112), xytext=(-10, 0), textcoords="offset points", ha="right", va="center",
+                fontsize=9.5, color=INK, arrowprops=dict(arrowstyle="-|>", color=INK2, lw=1))
+    ax.annotate("", xy=(d, 116), xytext=(d, 104), arrowprops=dict(arrowstyle="-|>", color=RED, lw=2))
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0f}%"))
+ax.set_ylabel("Share of Huang's exit priced in")
+ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+ax.set_xlim(od.index[0] - pd.Timedelta(days=2), od.index[-1] + pd.Timedelta(days=1))
+title(fig, "The market had priced in most of Huang's exit before he resigned",
+      "Cumulative abnormal loss since the probe, as a share of what losing Huang for good was worth "
+      "(valued by the comeback-day jump)")
+footer(fig, "Back-of-envelope: assumes every abnormal move in the window is about Huang and the comeback "
+            "jump is his full value (it also carried\ngovernment reassurance). Shaded days carried other news, "
+            "so readings there are less reliable.")
+save(fig, "08_implied_odds.png")
 
 print("Saved charts to", OUT)

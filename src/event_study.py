@@ -139,3 +139,41 @@ spill["significant_bh"] = spill["p_bh"] < 0.05
 spill.to_csv(OUT / "peer_spillovers.csv", index=False)
 print("\nPeer abnormal returns on event days (market model vs S&P 500 ex-NVDA):\n",
       spill.pivot(index="ticker", columns="event", values=["AR_pct", "t_stat", "p_bh"]).round(2).to_string())
+
+# --- Interpretation 1: the "Huang trade" (suppliers minus rivals) -------------
+# Nvidia's manufacturing/memory partners vs. its AI-chip competitors. If the
+# market read Huang's status as news about Nvidia's competitive position, the
+# spread should move against rivals when he returns and toward them when he goes.
+SUPPLIERS, RIVALS = ["TSM", "MU", "INTC"], ["AMD", "AVGO"]
+spread = ret[SUPPLIERS].mean(axis=1) - ret[RIVALS].mean(axis=1)
+m_sp = sm.OLS(spread.loc[est.index], sm.add_constant(est["SPYX"])).fit()
+sd_sp = np.sqrt(m_sp.mse_resid)
+sp_pred = predict(m_sp, ["SPYX"], post)
+sp_rows = []
+for _, e in events.iterrows():
+    a_ = spread.loc[e.date] - sp_pred.loc[e.date]
+    k = (m_sp.resid.abs() >= abs(a_)).sum()
+    sp_rows.append(dict(event=e.event_id, label=e.label, spread_AR_pct=a_ * 100, t_stat=a_ / sd_sp,
+                        p_empirical=(k + 1) / (len(m_sp.resid) + 1),
+                        suppliers_raw_pct=np.expm1(ret.loc[e.date, SUPPLIERS]).mean() * 100,
+                        rivals_raw_pct=np.expm1(ret.loc[e.date, RIVALS]).mean() * 100))
+sp_tbl = pd.DataFrame(sp_rows)
+sp_tbl.to_csv(OUT / "supplier_rival_spread.csv", index=False)
+print("\nSupplier-minus-rival abnormal spread on event days:\n", sp_tbl.round(3).to_string(index=False))
+
+# --- Interpretation 2: implied odds of Huang's exit ----------------------------
+# Back-of-envelope: treat the reinstatement-day abnormal return as the full value
+# of having Huang vs. not. Losing him entirely is then a drop of
+# 1 - 1/(1 + AR_reinstatement). The cumulative abnormal return since disclosure,
+# divided by that, is the share of his exit the market had priced in.
+# Assumes every abnormal move in the window is about Huang, so days with other
+# news (Nov 18-20) are flagged rather than interpreted.
+ar_e3 = daily.loc[events.date.iloc[-1], f"{PREFERRED}_simple"]
+full_loss = 1 - 1 / (1 + ar_e3)
+cum_ar = (1 + daily.loc[episode, f"{PREFERRED}_simple"]).cumprod() - 1
+odds = pd.DataFrame({"cum_AR_pct": cum_ar * 100, "implied_exit_odds_pct": -cum_ar / full_loss * 100})
+odds = odds.loc[odds.index < events.date.iloc[-1]]
+odds["other_news"] = odds.index.isin(confounders.date)
+odds.to_csv(OUT / "implied_exit_odds.csv")
+print(f"\nImplied full value of Huang: +{ar_e3:.1%} with vs. without (= {full_loss:.1%} of with-Huang value)")
+print(odds.round(1).to_string())
