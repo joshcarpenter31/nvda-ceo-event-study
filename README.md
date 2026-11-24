@@ -1,98 +1,140 @@
-# How the Market Priced a CEO's Exit and Return: Nvidia, November 2026
+# Nvidia Without Jensen Huang: Eleven Days in November
 
-**TL;DR:** Using an event study, volatility-robust tests and a synthetic peer benchmark, I estimate that Nvidia's stock rose **+26.5% beyond what the market explains (≈ +$800B)** on the day Jensen Huang was reinstated as CEO. That is the largest abnormal move in the sample and is significant in all 24 model specifications. The resignation-day drop was smaller, and whether it is significant depends on how volatility is modelled.
+*An event study of what Nvidia's stock did when its CEO was investigated, quit, and then came back.*
 
-In November 2026, Nvidia's board disclosed an investigation into CEO Jensen Huang (Nov 8), Huang resigned (Nov 12), and the board reinstated him (Nov 23). Over eleven trading days the market priced Nvidia with Huang, then without him, then with him again. This project measures those reactions and is careful about what else was happening at the same time.
+On Sunday, November 8, 2026, Nvidia's board put out a short statement saying it was investigating its own CEO. Jensen Huang had told employees he'd had a relationship with a business executive whom U.S. intelligence reportedly suspected of spying for China. Four days later he resigned, and CFO Colette Kress stepped in as interim CEO. On November 17 the board chair said Huang would not be coming back. Six days after that, the board brought him back anyway.
+
+That gave the market eleven trading days to price Nvidia with its founder, then without him, then with him again. Over that stretch the stock lost a third of its value (about $1.5 trillion at the low) and then got most of it back. I wanted to know what each of those switches was worth, and how much of the slide had anything to do with Huang at all.
+
+The short answer is that his return mattered far more than his exit. On the morning he was reinstated, Nvidia gained about 26.5% more than the market can explain. That's roughly $800 billion of value in one session. The resignation barely registered by the closing bell. And most of the slide in between happened on days when the news was about something else.
 
 ![Price path](output/01_price_path.png)
 
-## Key findings
+## Day by day
 
-| Event (first trading day) | Raw return | Abnormal return: preferred model (range, 24 specs) | Constant-vol t / GARCH z | Abnormal Δ market value: preferred (range) |
-|---|---|---|---|---|
-| Investigation disclosed (Nov 9) | -4.3% | **-8.7%** (-9.7% to -5.9%) | -4.2 / -3.5 | **-$390B** (-$440B to -$270B) |
-| Huang resigns (Nov 12) | -4.3% | **-4.2%** (-4.7% to -3.3%) | -2.1 / -1.4 | **-$180B** (-$200B to -$140B) |
-| **Huang reinstated (Nov 23)** | **+31.5%** | **+26.5%** (+20.8% to +29.6%) | **10.9 / 6.3** | **+$800B** (+$630B to +$900B) |
+| | Nov 9: probe disclosed | Nov 12: Huang resigns | Nov 23: Huang reinstated |
+|---|---|---|---|
+| Stock's actual move | -4.3% | -4.3% | **+31.5%** |
+| Move beyond what the market explains | -8.7% | -4.2% | **+26.5%** |
+| In dollars | -$390B | -$180B | **+$800B** |
+| Range across 24 model variations | -5.9% to -9.7% | -3.3% to -4.7% | +20.8% to +29.6% |
+| Statistically clear? | Yes, in all 24 | Depends on the test | Yes, in all 24 |
 
-*Preferred model:* NVDA regressed on the S&P 500 **excluding NVDA** over 250 trading days. *Abnormal return:* cumulative actual minus model-predicted simple return. *Δ market value:* abnormal return × prior-day market cap.
+"Beyond what the market explains" is the abnormal return. I estimate how Nvidia normally moves with the market, using a year of data that ends on October 23, before any of this started. Whatever Nvidia did on top of that is the abnormal part. The dollar figure applies that percentage to Nvidia's market value the night before.
 
-1. **The reinstatement was the clear shock.** A +26.5% abnormal return is about 13 times the typical daily abnormal move (±2.1%) and larger than any day in the prior year. It stays highly significant after allowing for the turbulent month (GARCH z = 6.3). The board chair had said on Nov 17 that Huang would not be reinstated, so the reversal was a genuine surprise.
-2. **The resignation-day evidence is mixed.** The -4.2% drop is significant with a constant-volatility t-test (t = -2.1, significant in 19 of 24 specs) but not once volatility is allowed to rise with the episode (GARCH p = 0.09 to 0.13). Combined with the -13.9% two-day abnormal loss after the disclosure, this is *consistent with* a partly anticipated exit. CNBC reported that the stock opened more than 13% lower that morning before recovering to close down 4.3%.
-3. **The episode's net loss came from the non-Huang days.** Across the full Nov 9 to 23 episode, NVDA's abnormal return was -9.7% (-$440B). The three Huang-event days net *positive*. The losses accumulated on the other eight days, which carried other news: Q3 earnings (Nov 18), reported SEC and California AG inquiries, a China export halt, and a sector-wide selloff on Nov 20 (see [`data/confounders.csv`](data/confounders.csv)).
-4. **Spillovers were mostly market beta.** Chip stocks rose 10%+ on Nov 23, but so did the broad market (the S&P 500 ex-NVDA was up about 3%), and chip stocks have high betas. After adjusting for beta and correcting for 30 simultaneous tests (Benjamini-Hochberg), only **TSMC** (+7.3%, t = 3.4) shows a significant abnormal gain. An apparent "rotation into rivals" during Huang's absence does not survive the correction.
+## The day he quit, the market shrugged (eventually)
+
+The resignation came out around 9 a.m. Eastern on November 12. Nvidia opened 13% lower and at one point was down more than 14%. By the close it had clawed most of that back and finished down 4.3%. After adjusting for the market, the drop was 4.2%. Whether that counts as statistically significant depends on how you handle volatility. A standard test says yes (t = -2.1). A GARCH model, which lets volatility rise during a turbulent stretch, says no (p of about 0.1).
+
+My read is that most of the exit was already priced in. In the two days after the investigation became public, Nvidia had already fallen about 14% relative to the market. By the time Huang actually left, a lot of investors had placed that bet.
+
+The comeback was the opposite. The board chair had said publicly that Huang wasn't returning. When he did, the stock opened up 33% and closed up 31.5%. After adjusting for the market, that's a 26.5% abnormal move. That's nearly 13 times a normal day's noise and bigger than any day in the previous year.
+
+There's one catch. The board's filing said it had received input from senior levels of the U.S. government and was confident Huang's return posed no national security risk. So the $800 billion is partly Huang and partly relief that Washington seemed to be on board. I can't cleanly split the two.
 
 ![Daily abnormal returns](output/02_abnormal_returns.png)
+
+## Measuring Nvidia against itself
+
+The first trap I ran into: the obvious yardstick, the S&P 500, is about 8% Nvidia. On a day when Nvidia jumps 31%, the S&P goes up partly *because of* Nvidia. Measure against it and you're comparing Nvidia with a slice of itself, which knocks a few points off the answer.
+
+So I rebuilt the S&P 500 without Nvidia. I started from Nvidia's index weight on October 23 (7.77%, according to WhichIndex) and let it drift each day with Nvidia's price relative to the index. To check it, I compared the weights it implies on other dates with published holdings: 8.45% vs. 8.50% on October 2, and 7.59% vs. 7.58% on October 31. It also tracks Nvidia much better than the equal-weight S&P 500 does (R² of 0.24 vs. 0.05), so it became my main benchmark.
+
+## Where the losses actually came from
+
+From November 9 through 23, Nvidia trailed the market by about 9.7%, or roughly $440 billion. The three Huang days, added together, come out *positive*, because the comeback outweighs the two drops. Every bit of the net loss sits on the other eight days.
+
+A lot happened on those days. Nvidia reported third-quarter earnings after the close on November 17: $115.8 billion in revenue, up 103%, delivered by an interim CEO. The same day, the Wall Street Journal reported an SEC probe. Reports followed of a halt to H200 sales to China and a subpoena from California's attorney general. Then on Friday, November 20, chip stocks sold off hard. Nvidia opened only slightly lower, slid all day, and closed down 14%, its worst session of the episode.
+
+None of that is a Huang event, so I don't count it as one. Those days are shaded in the charts and listed with sources in [`data/confounders.csv`](data/confounders.csv).
+
 ![Dollar impact](output/03_dollar_impact.png)
 
-## Synthetic peer benchmark
+## A stand-in Nvidia
 
-As a model-free cross-check, I build a "synthetic NVDA": a fixed, non-negative mix of comparable stocks that best tracked NVDA's daily returns from April to October 2026. The mix is TSMC 50%, S&P 500 ex-NVDA 19%, Meta 12%, Microsoft 9% and Broadcom 8%, with a daily tracking error of 1.75%. This is a returns-based variant of synthetic control; the classic Abadie-Diamond-Hainmueller method matches outcome *levels*.
+A regression is one way to estimate what Nvidia "should" have done. Another is to build a stand-in. I found the mix of stocks that best tracked Nvidia's daily returns from April to October: about half TSMC, plus the S&P 500 ex-Nvidia, Meta, Microsoft and Broadcom. Then I froze that mix and let it run through November.
 
-- **Trough:** at the Nov 20 low, NVDA was **25% below** its synthetic twin, about 5 SD of normal tracking drift.
-- **After reinstatement:** the gap closed to **-10%**, about 1.9 SD of normal drift, so it is not clearly distinguishable from noise.
-- **Placebos:** re-running the procedure on each of 10 donor stocks, NVDA's gap is the most extreme of the 11 on 8 of 11 days, and it has the largest post/pre fit ratio (4.1 vs 0.5 to 2.1). With 11 units, the smallest attainable permutation p-value is 1/11 ≈ 0.09, so this is strong but not conventionally "significant" evidence.
-- **Donor contamination:** TSMC and Broadcom reacted to the news themselves. Re-fitting without TSMC or with non-chip donors only gives a deeper trough (-29%) and a similar final gap (-10% to -12%).
-- **Not Huang-only:** the window includes earnings and the other news above, so the gap measures the whole episode, not Huang alone.
+At the November 20 low, the real Nvidia was 25% below its stand-in, about five times the gap you'd normally see over that many days. After the reinstatement the gap shrank to about 10%, which is just inside two standard deviations of normal drift.
+
+To make sure this wasn't an artifact of the method, I ran the same thing on each of the 10 stocks in the pool, pretending each one was the company in the news. Nvidia had the most extreme gap on 8 of the 11 days. With only 11 stocks the smallest possible p-value from that test is 0.09, so I treat it as strong supporting evidence rather than proof. Swapping out TSMC, or using only non-chip stocks, gives the same picture.
 
 ![Synthetic control](output/05_synthetic_control.png)
 
-## Robustness
+## Did the rest of the chip world ride along?
 
-**Choice of benchmark.** Cap-weighted indices hold NVDA itself: about 7.8% of the S&P 500 on Oct 23, 2026 ([WhichIndex](https://whichindex.com/indexes/sp-500/)). On a +31% NVDA day, SPY and QQQ rise *because of* NVDA. I strip NVDA out of SPY using a daily weight anchored on that figure and drifted with relative prices. The implied weights match published holdings within about 0.1pp (8.45% vs 8.50% on Oct 2; 7.59% vs 7.58% on Oct 31). The S&P 500 ex-NVDA fits NVDA far better than the equal-weight index (R² 0.24 vs 0.05). Differences between benchmarks reflect fit and beta as well as NVDA's weight.
+On reinstatement day, Micron rose 19%, Intel 16% and TSMC 14%. That looks like Nvidia lifting the whole supply chain. But the broader market was up about 3% that day, and these stocks typically move two to three times as much as the market does. Once you account for that, and for the fact that I ran 30 tests (10 stocks across 3 events), only TSMC stands out, at about 7% above what the market predicts.
 
-**Specification grid.** 3 estimation windows (120 / 250 / 500 days) × 4 benchmarks (S&P 500 ex-NVDA, equal-weight S&P 500, SPY, QQQ) × with or without a chip-peer factor = 24 specifications. The reinstatement jump is +20.8% to +29.6%, with |t| > 9 in every case. The disclosure is significant in 24/24 and the resignation in 19/24.
+I also thought I'd spotted money rotating into AMD and Broadcom while Huang was gone. It didn't survive the same correction.
 
-**Volatility.** Each event-day abnormal return is re-scaled by a GARCH(1,1)-t conditional volatility. The model is fit on the estimation window and filtered forward, so sigma for day *t* uses only data through *t-1*. Because the episode's own shocks raise sigma for later events, I also report z using sigma frozen before the episode. Both versions are in [`output/robust_volatility.csv`](output/robust_volatility.csv).
-
-**The chip-peer (industry) model** is reported but not preferred. The peers reacted to Nvidia's news themselves (some rallied on Nov 9, partly on AMD's own analyst upgrade, and all rallied on Nov 23), so controlling for them biases E1/E2 and E3 in opposite directions.
-
-![Specification curve](output/06_spec_curve.png)
 ![Spillovers](output/04_spillovers.png)
 
-## Method
+## What I got wrong the first time
 
-Short-horizon event study (MacKinlay, 1997, *Journal of Economic Literature*):
+When I stress-tested my first draft, several things fell apart.
 
-1. **Estimation window:** 250 trading days ending Oct 23, 2026. That is before the late-October Megaspeed reports, the Nov 3 midterm elections and the November chip selloff.
-2. **Normal returns:** OLS of NVDA's daily log return on the S&P 500 ex-NVDA (alternatives in *Robustness*).
-3. **Abnormal return** over a window = cumulative actual simple return − cumulative predicted simple return. Multiplied by the market cap at the close before the window, this gives the dollar gap between actual and counterfactual value.
-4. **Inference:**
-   - t-statistics on summed log abnormal returns, using estimation-window residual volatility.
-   - GARCH(1,1)-t z-scores.
-   - Empirical p-values from the distribution of same-length residual sums, reported as (k+1)/(N+1), so they are never 0.
-5. **Event timing:** dates come from Nvidia's board statement (Nov 8, a Sunday) and its 8-K filings (Nov 12, Nov 23). Contemporaneous reports place both 8-K announcements around 9:00 a.m. ET, before the open; the filings themselves give no time. Day 0 is therefore the first trading session after each announcement ([`data/events.csv`](data/events.csv)).
+- I converted log returns into dollars the wrong way, which understated the comeback by about $40 billion.
+- I called the episode a "round trip." It wasn't. Nvidia still ended about 10% below its stand-in.
+- I missed that earnings and several regulatory stories landed in the middle of the window.
+- My main benchmark was the equal-weight S&P 500, which barely tracks Nvidia.
+- The rotation story and most of the spillover story disappeared once the benchmark was better and the multiple testing was handled properly.
 
-## Limitations
+Fixing all of that made the headline number slightly larger and made the rest of the story smaller and more honest.
 
-- **Bundled news on reinstatement day.** Nvidia's 8-K said the board received input from senior levels of the U.S. government and was confident Huang's return posed no national-security risk. Some of the +$800B may reflect that reduced regulatory risk rather than Huang himself.
-- **Other news inside the window.** Nov 5, and Nov 18 to 20, carried earnings, regulatory reports (some unconfirmed and single-sourced) and sector moves. The event-day estimates avoid these days. The episode and synthetic-control totals do not.
-- **Possible leakage.** Reports about Megaspeed began on Oct 29, before the board's Nov 8 statement. NVDA also had an unexplained -6.3% abnormal day on Nov 4. Some of the disclosure reaction may have been priced early.
-- **Spillovers in the controls.** The broad market rose about 3% on Nov 23, partly on the same news, so market-adjusted estimates for that day are, if anything, conservative.
-- **Small samples.** Each event is one observation, and the placebo test has 10 donors (minimum p = 0.09). These are case-study estimates, not general laws about CEO value.
-- **A developing story.** Investigations are ongoing. This analysis measures market reactions only and takes no position on any allegations.
+## How sure am I about the $800 billion?
 
-## Reproduce
+Fairly sure about the direction and the rough size. I re-estimated the reinstatement-day move 24 ways: three estimation windows, four different market benchmarks, with and without a chip-sector factor. Every version lands between +21% and +30%, and the weakest is still more than 9 standard errors from zero. A GARCH model fit only on pre-event data gives a z-score of 6.3.
 
-Requires Python 3.12.
+The disclosure day holds up in all 24 versions. The resignation day holds up in 19, which is why I call it mixed.
+
+![Specification curve](output/06_spec_curve.png)
+
+## What this can't tell you
+
+It can't tell you what Huang is personally worth. The reinstatement came bundled with the government reassurance, and I have no way to separate the two.
+
+The disclosure may also have leaked. Reports about Megaspeed, the company the executive worked for, started on October 29, and Nvidia had an unexplained 6.3% abnormal drop on November 4. Some of the Nov 9 reaction may have been priced early.
+
+Each event is a single day for a single company, so these are case-study numbers and not a general rule about CEOs.
+
+Finally, the investigations are still open. This project measures how the market reacted. It takes no position on any of the allegations.
+
+## Method, for the quants
+
+1. **Estimation window:** 250 trading days ending October 23, 2026. That's before the Megaspeed reports, the November 3 midterms and the November chip selloff.
+2. **Normal returns:** OLS of Nvidia's daily log return on the S&P 500 ex-Nvidia. Alternatives are the equal-weight S&P 500, SPY and QQQ, each with or without an equal-weight chip-peer factor (AMD, AVGO, TSM, MU, INTC). I don't prefer the chip-peer version, because those stocks reacted to the same news, and that biases different events in different directions.
+3. **Abnormal return** is cumulative actual simple return minus cumulative predicted simple return. Times the prior market cap, that gives the dollar gap against the counterfactual.
+4. **Inference:** t-statistics on summed log abnormal returns, GARCH(1,1) z-scores with Student-t errors (fit pre-event, filtered forward with fixed parameters so sigma at *t* only uses data through *t-1*), and empirical p-values from same-length residual sums.
+5. **Stand-in Nvidia:** a returns-based synthetic control. Weights are non-negative, sum to one and minimise tracking error over April to October 2026. Inference uses placebo runs on every donor, plus a noise band from pre-period tracking gaps.
+6. **Spillovers:** a market model for each peer, with a Benjamini-Hochberg correction across all 30 peer-event tests.
+7. **Event timing:** the board statement came out on a Sunday, and both 8-Ks were reported around 9 a.m. Eastern, before the open. Day 0 is the first session after each announcement. See [`data/events.csv`](data/events.csv).
+
+## Run it yourself
+
+Needs Python 3.12.
 
 ```bash
 pip install -r requirements.txt
-python src/run_all.py            # reproduces every number and chart from the frozen data in data/
-python src/run_all.py --fetch    # optional: re-download prices first (results may change)
+python src/run_all.py            # rebuilds every number and chart from the saved data
+python src/run_all.py --fetch    # downloads fresh prices first (numbers may shift slightly)
 ```
 
-`--fetch` keeps only completed U.S. sessions and refuses to overwrite `data/` if any ticker fails to download. Study settings (dates, tickers, benchmark weight) live in [`src/config.py`](src/config.py).
+All the study settings live in [`src/config.py`](src/config.py). Results land in `output/`:
 
-| Output | Contents |
+| File | What's in it |
 |---|---|
-| `output/event_cars.csv` | Abnormal returns for every event, window and model, plus episode totals |
-| `output/robust_volatility.csv` | Constant, GARCH and pre-episode-GARCH test statistics |
-| `output/robust_spec_grid.csv` | The 24-specification grid |
-| `output/synthetic_control_*.csv` | Weights, path with noise band, placebos, daily ranks, donor sensitivity |
-| `output/peer_spillovers.csv` | Peer abnormal returns with Benjamini-Hochberg-adjusted p-values |
+| `event_cars.csv` | Abnormal returns for every event, window and model, plus episode totals |
+| `robust_volatility.csv` | Standard, GARCH and pre-episode GARCH test statistics |
+| `robust_spec_grid.csv` | All 24 model variations |
+| `synthetic_control_*.csv` | Stand-in weights, path, placebos and sensitivity checks |
+| `peer_spillovers.csv` | Peer abnormal returns with corrected p-values |
 
-## Possible extensions
+## Sources
 
-- Intraday data, to separate the pre-market reaction from the regular session (the Nov 12 open was far below the close).
-- Options-implied volatility around each event.
-- Comparison with other founder-CEO exits and returns (e.g., Steve Jobs in 1997).
+- Nvidia board statement, Nov 8: https://nvidianews.nvidia.com/news/statement-from-nvidia-board-of-directors
+- Resignation 8-K, Nov 12: https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm
+- Reinstatement 8-K, Nov 23: https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000090/nov23pressrelease.htm
+- CNBC live coverage of the resignation: https://www.cnbc.com/2026/11/12/nvidia-jensen-huang-ceo-live-updates.html
+- Q3 fiscal 2027 results: https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-Third-Quarter-Fiscal-2027/
+- Board chair on not reinstating Huang, and the reported SEC probe: https://www.khaleejtimes.com/business/nvidia-wont-rehire-jensen-huang-sec-probing-chipmaker
+- S&P 500 weights, Oct 23: https://whichindex.com/indexes/sp-500/
+- Prices: Yahoo Finance via `yfinance`
